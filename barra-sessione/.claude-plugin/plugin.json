@@ -1,0 +1,9 @@
+{
+  "name": "barra-sessione",
+  "version": "0.1.0",
+  "description": "Riga di stato in italiano sopra il prompt: cache, contesto, limiti, token e costo, con Handoff e Replay; comando /token",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Fabrizio Abruzzese"
+  }
+}

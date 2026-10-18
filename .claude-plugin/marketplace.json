@@ -1,0 +1,5 @@
+{
+  "name": "fabrizio-mods",
+  "owner": { "name": "Fabrizio Abruzzese" },
+  "plugins": [{ "name": "barra-sessione", "source": "./barra-sessione" }]
+}
