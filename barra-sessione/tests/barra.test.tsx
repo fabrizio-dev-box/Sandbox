@@ -44,7 +44,7 @@ test('la barra mostra cache, contesto, limiti, costo e Replay', async ($, on) =>
     usage: { model: 'm', input_tokens: 1000, output_tokens: 500, cache_read_input_tokens: 40_000, cache_creation_input_tokens: 2000 },
   } as never)
 
-  for (const surface of ['terminal', 'desktop'] as const) {
+  for (const surface of ['terminal', 'desktop', 'vscode', 'mobile'] as const) {
     const ui = await $.ui.mount({ ...BAND, surface } as never)
     expect(await ui.find({ type: 'Text', text: 'scade tra 1h 00m' })).toBeDefined()
     expect(await ui.find({ text: /Contesto 48,2k \/ 200k \(24%\)/ })).toBeDefined()
