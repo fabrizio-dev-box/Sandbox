@@ -68,12 +68,21 @@ async function handoff($: EngineInterface) {
     }
     await $.command.run({ command: 'clear' })
     await azzera($)
-    const bozza = await $.prompt.fill({ text: risposta.text.trim() })
-    $.ui.toast(
-      bozza.isFilled
-        ? 'Chat pulita: il riassunto è nella casella come bozza'
-        : 'Chat pulita, ma la casella non ha preso la bozza',
-    )
+    const riassunto = risposta.text.trim()
+    const bozza = await $.prompt.fill({ text: riassunto })
+    if (bozza.isFilled) {
+      $.ui.toast('Chat pulita: il riassunto è nella casella come bozza')
+
+      return
+    }
+    // Senza una casella raggiungibile (una sessione cloud vista da un'app) il
+    // riassunto resta nella chat come avviso da copiare; il modello non lo legge.
+    await $.session.append({
+      message: {
+        type: 'system',
+        content: [{ type: 'text', text: `Handoff: copia questo riassunto nella casella.\n\n${riassunto}` }],
+      },
+    })
   } finally {
     await update($, handoffInCorso, () => false)
   }
@@ -81,6 +90,10 @@ async function handoff($: EngineInterface) {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
+    await $.command.register({
+      name: 'handoff',
+      description: 'Riassume la sessione, pulisce la chat e mette il riassunto nella casella come bozza',
+    })
     await $.command.register({
       name: 'token',
       description: 'Riepilogo per esteso: cache, contesto, limiti, token e costo della sessione',
@@ -120,6 +133,13 @@ export const register: Register = on => {
     }
 
     return next(e)
+  })
+
+  on('command.run', { command: 'handoff' }, async $ => {
+    // Fuori dal comando: /clear non può partire mentre il comando è in corso.
+    $.clock.after(0, () => void handoff($))
+
+    return { text: 'Handoff: scrivo il riassunto, poi pulisco la chat…' }
   })
 
   on('command.run', { command: 'token' }, async $ => {

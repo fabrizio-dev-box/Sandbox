@@ -110,3 +110,27 @@ test('Handoff riassume, pulisce la chat e mette la bozza nella casella', async (
   expect(fatti).toEqual(['fork', 'clear', 'fill:Riassunto della sessione'])
   await ui.unmount()
 })
+
+test('/handoff senza casella lascia il riassunto come avviso dopo /clear', async ($, on) => {
+  const clock = mock.clock(on, { now: ORA })
+  const fatti: string[] = []
+  on('command.register', () => ({ value: {} }) as never)
+  on('ui.toast', () => ({ value: {} }) as never)
+  on('session.start', () => ({ cwd: '/' }))
+  on('command.list', () => ({ value: [] }))
+  on('model.fork', () => ({ value: { isAnswered: true, text: 'Riassunto', usage: { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 } } }) as never)
+  on('command.run', { command: 'clear' }, () => {
+    fatti.push('clear')
+
+    return { text: '' }
+  })
+  on('prompt.fill', () => ({ isFilled: false, refusal: 'no_composer' }) as never)
+  const sessione = mock.session(on)
+
+  await $.session.start({ cwd: '/' } as never)
+  const { text } = await $.command.run({ command: 'handoff' } as never)
+  expect(text).toContain('Handoff')
+  await clock.settle()
+  expect(fatti).toEqual(['clear'])
+  expect(JSON.stringify(sessione.appended())).toContain('Riassunto')
+})
