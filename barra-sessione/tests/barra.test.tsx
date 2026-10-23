@@ -33,6 +33,7 @@ test('la barra mostra cache, contesto, limiti, costo e Replay', async ($, on) =>
   ] }))
   on('turn.complete', () => ({ text: 'ok' }) as never)
   on('session.start', () => ({ cwd: '/' }))
+  on('session.surfaces', () => ({ value: ['desktop'] }) as never)
 
   await $.session.start({ cwd: '/' } as never)
   await $.turn.complete({
@@ -61,7 +62,15 @@ test('la barra mostra cache, contesto, limiti, costo e Replay', async ($, on) =>
   expect(await ui.find({ type: 'Text', text: /^scade tra 8:0\d$/ })).toBeDefined()
   await ui.unmount()
 
+  // Una superficie che non passa `view` disegna comunque la barra.
+  const { view: _view, ...senzaView } = BAND.props
+  const nuda = await $.ui.mount({ ...BAND, props: senzaView, surface: 'desktop' } as never)
+  expect(await nuda.find({ key: 'handoff' })).toBeDefined()
+  await nuda.unmount()
+
   const { text } = await $.command.run({ command: 'token' } as never)
+  expect(text).toContain('Superfici collegate: desktop')
+  expect(text).toMatch(/Barra disegnata: .*desktop alle/)
   expect(text).toContain('Limite 5 ore: 31% usato')
   expect(text).toContain('Costo a prezzi API: $3,46')
 })

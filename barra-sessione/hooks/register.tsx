@@ -24,6 +24,9 @@ const PROMPT_HANDOFF = `Scrivi un riassunto di passaggio di consegne di questa s
 Includi: l'obiettivo, cosa è stato fatto (file toccati, decisioni prese e perché), lo stato attuale, cosa resta da fare e i passi successivi concreti, e ogni dettaglio indispensabile (percorsi, comandi, nomi, errori ancora aperti).
 Scrivilo rivolto al prossimo assistente, conciso ma completo. Rispondi solo con il riassunto, senza preamboli.`
 
+// Dove la barra è stata disegnata l'ultima volta, per la diagnosi di /token.
+const disegni: Record<string, string> = {}
+
 // Se replay-theater fornisce /replay: riletto a ogni avvio e ogni minuto.
 let haReplay = false
 
@@ -119,14 +122,23 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'token' }, async $ => ({
-    text: riepilogoEsteso(await riepilogo($, false)),
-  }))
+  on('command.run', { command: 'token' }, async $ => {
+    const superfici = await $.session.surfaces()
+    const visti = Object.entries(disegni).map(([s, quando]) => `${s} alle ${quando}`)
+    const diagnosi = [
+      '',
+      `Superfici collegate: ${superfici.length > 0 ? superfici.join(', ') : 'nessuna'}`,
+      `Barra disegnata: ${visti.length > 0 ? visti.join(', ') : 'mai'}`,
+    ].join('\n')
+
+    return { text: riepilogoEsteso(await riepilogo($, false)) + '\n' + diagnosi }
+  })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey || e.props.view.agentId !== undefined) {
+    if (e.props.hasSurvey || e.props.view?.agentId !== undefined) {
       return next(e)
     }
+    disegni[e.surface] = new Date(await $.clock.now()).toTimeString().slice(0, 8)
     await read($, adesso)
     const r = await riepilogo($, e.props.isWorking)
     const inCorso = await read($, handoffInCorso)
